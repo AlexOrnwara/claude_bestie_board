@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💌 BFF Board</title>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --p1: #FFD6E7;
+    --p1-mid: #f5b8d4;
+    --p1-dark: #c06090;
+    --p2: #C8E8FF;
+    --p2-mid: #9dd0f5;
+    --p2-dark: #3a90c0;
+    --bg: #FFF8F2;
+    --tape: rgba(255,235,140,0.85);
+    --white: #ffffff;
+    --shadow: 0 10px 40px rgba(180,110,150,0.18);
+    --radius: 20px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Nunito', sans-serif;
+    background: var(--bg);
+    min-height: 100vh;
+    padding: 24px 16px 40px;
+    background-image:
+      radial-gradient(ellipse at 15% 15%, #ffe0f0 0%, transparent 55%),
+      radial-gradient(ellipse at 85% 85%, #cce8ff 0%, transparent 55%),
+      radial-gradient(ellipse at 50% 50%, #fff8f2 0%, transparent 80%);
+  }
+
+  /* ---- HEADER ---- */
+  .header {
+    text-align: center;
+    margin-bottom: 30px;
+    animation: fadeDown 0.6s ease both;
+  }
+  @keyframes fadeDown {
+    from { opacity: 0; transform: translateY(-16px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  h1 {
+    font-family: 'Caveat', cursive;
+    font-size: 3rem;
+    color: var(--p1-dark);
+    letter-spacing: 2px;
+    text-shadow: 3px 3px 0 rgba(192,96,144,0.12);
+    line-height: 1;
+  }
+  .subtitle { color: #c0a0b8; font-size: 0.88rem; margin-top: 4px; font-style: italic; }
+
+  .sync-status {
+    display: inline-flex; align-items: center; gap: 6px;
+    background: white; border-radius: 20px; padding: 4px 14px;
+    font-size: 0.75rem; color: #aaa; margin-top: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.06);
+    transition: color 0.3s;
+  }
+  .sync-dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: #ccc; transition: background 0.3s;
+    flex-shrink: 0;
+  }
+  .sync-status.live .sync-dot { background: #7dd87d; animation: pulse-dot 2s infinite; }
+  .sync-status.live { color: #888; }
+  .sync-status.saving .sync-dot { background: #f5c842; }
+  .sync-status.saving { color: #b8a050; }
+  @keyframes pulse-dot {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.5; transform:scale(1.3); }
+  }
+
+  /* ---- WHO AM I ---- */
+  .who-bar {
+    display: flex; justify-content: center; gap: 14px; margin-bottom: 26px;
+    animation: fadeDown 0.6s 0.15s ease both;
+  }
+  .who-btn {
+    font-family: 'Caveat', cursive; font-size: 1.3rem; font-weight: 700;
+    padding: 8px 24px; border-radius: 30px; border: 3px solid transparent;
+    cursor: pointer; transition: all 0.2s; background: white;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+  }
+  .who-btn.p1 { color: var(--p1-dark); border-color: var(--p1-mid); }
+  .who-btn.p1.active, .who-btn.p1:hover { background: var(--p1); }
+  .who-btn.p2 { color: var(--p2-dark); border-color: var(--p2-mid); }
+  .who-btn.p2.active, .who-btn.p2:hover { background: var(--p2); }
+  .who-btn.active { transform: scale(1.05); }
+
+  /* ---- BOARD GRID ---- */
+  .board {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+    max-width: 920px;
+    margin: 0 auto;
+    animation: fadeUp 0.6s 0.2s ease both;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @media (max-width: 680px) {
+    .board { grid-template-columns: 1fr; }
+    h1 { font-size: 2.2rem; }
+  }
+
+  /* ---- NOTE CARD ---- */
+  .note-card {
+    border-radius: var(--radius);
+    padding: 26px 22px 20px;
+    position: relative;
+    box-shadow: var(--shadow);
+    transition: transform 0.25s, box-shadow 0.25s;
+  }
+  .note-card:hover { transform: translateY(-4px) rotate(-0.4deg); box-shadow: 0 18px 50px rgba(180,110,150,0.22); }
+  .note-card.p1 { background: var(--p1); }
+  .note-card.p2 { background: var(--p2); }
+  .note-card.mine { outline: 3px dashed rgba(255,255,255,0.8); }
+
+  /* tape */
+  .note-card::before {
+    content: '';
+    width: 64px; height: 20px;
+    background: var(--tape);
+    border-radius: 4px;
+    position: absolute; top: -10px; left: 50%; transform: translateX(-50%);
+    box-shadow: 0 2px 6px rgba(0,0,0,0.09);
+  }
+
+  /* ---- CARD HEADER ---- */
+  .card-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  .avatar-wrap { position: relative; flex-shrink: 0; }
+  .card-avatar {
+    width: 40px; height: 40px; border-radius: 50%;
+    background: white; display: flex; align-items: center; justify-content: center;
+    font-size: 1.4rem; box-shadow: 0 3px 10px rgba(0,0,0,0.1);
+    cursor: pointer; transition: transform 0.2s;
+    user-select: none;
+  }
+  .card-avatar:hover { transform: scale(1.2) rotate(12deg); }
+  .card-avatar.locked { cursor: default; }
+  .card-avatar.locked:hover { transform: none; }
+
+  .card-name-wrap { flex: 1; min-width: 0; }
+  .card-name {
+    font-family: 'Caveat', cursive; font-size: 1.5rem; font-weight: 700;
+    border: none; background: transparent; outline: none;
+    width: 100%; color: inherit;
+  }
+  .p1 .card-name { color: var(--p1-dark); }
+  .p2 .card-name { color: var(--p2-dark); }
+  .card-name:disabled { cursor: default; }
+
+  .online-pip {
+    width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    background: #ccc; box-shadow: 0 0 0 3px white;
+    transition: background 0.4s;
+  }
+  .online-pip.online { background: #6ddc6d; animation: pulse-dot 2s infinite; }
+
+  /* ---- SECTION LABEL ---- */
+  .slabel {
+    font-size: 0.68rem; font-weight: 800; text-transform: uppercase;
+    letter-spacing: 1.4px; color: #aaa; margin-bottom: 5px; margin-top: 13px;
+  }
+
+  /* ---- MOOD ---- */
+  .mood-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .mood-big {
+    font-size: 2rem; cursor: pointer;
+    animation: floaty 3.5s ease-in-out infinite;
+    transition: transform 0.15s;
+  }
+  .mood-big.locked { cursor: default; animation: floaty 3.5s ease-in-out infinite; }
+  .mood-big:not(.locked):hover { transform: scale(1.35); animation: none; }
+  @keyframes floaty {
+    0%,100% { transform: translateY(0); }
+    50% { transform: translateY(-5px); }
+  }
+  .mood-text {
+    font-family: 'Caveat', cursive; font-size: 1rem; color: #999;
+    border: none; background: transparent; outline: none;
+    flex: 1; min-width: 60px;
+    font-style: italic;
+  }
+  .mood-text:disabled { cursor: default; }
+
+  /* ---- EMOJI PICKER ---- */
+  .epicker-wrap { position: relative; }
+  .epicker {
+    display: none; flex-wrap: wrap; gap: 6px;
+    background: white; border-radius: 14px; padding: 10px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.14);
+    position: absolute; z-index: 200; top: 44px; left: 0;
+    max-width: 230px; max-height: 180px; overflow-y: auto;
+  }
+  .epicker.open { display: flex; }
+  .eopt { font-size: 1.5rem; cursor: pointer; transition: transform 0.1s; }
+  .eopt:hover { transform: scale(1.3); }
+
+  /* ---- NOTE TEXT ---- */
+  .note-text {
+    font-family: 'Caveat', cursive; font-size: 1.25rem;
+    border: none; background: rgba(255,255,255,0.5); border-radius: 12px;
+    padding: 10px 12px; width: 100%; resize: none; min-height: 80px;
+    color: #444; outline: none; transition: background 0.2s;
+    line-height: 1.5;
+  }
+  .note-text:focus { background: rgba(255,255,255,0.82); }
+  .note-text:disabled { cursor: default; }
+
+  /* ---- MUSIC ---- */
+  .music-row { display: flex; align-items: center; gap: 8px; }
+  .music-icon { font-size: 1.1rem; display: inline-block; animation: wiggle 1.8s ease-in-out infinite; }
+  @keyframes wiggle { 0%,100%{transform:rotate(-8deg);} 50%{transform:rotate(8deg);} }
+  .music-inp {
+    flex: 1; border: none; background: rgba(255,255,255,0.5);
+    border-radius: 22px; padding: 6px 14px;
+    font-family: 'Caveat', cursive; font-size: 1.1rem; color: #555;
+    outline: none; transition: background 0.2s;
+  }
+  .music-inp:focus { background: rgba(255,255,255,0.82); }
+  .music-inp:disabled { cursor: default; }
+
+  /* ---- FLIGHT ---- */
+  .flight-box {
+    background: rgba(255,255,255,0.6); border-radius: 14px; padding: 12px 14px;
+    margin-top: 6px;
+  }
+  .flight-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .flight-inp {
+    border: none; background: rgba(255,255,255,0.7); border-radius: 8px;
+    padding: 5px 10px; font-family: 'Nunito', sans-serif; font-size: 0.85rem;
+    color: #555; outline: none; flex: 1; min-width: 60px; transition: background 0.2s;
+  }
+  .flight-inp:focus { background: white; }
+  .flight-inp:disabled { cursor: default; background: rgba(255,255,255,0.4); }
+  .arrow { font-size: 1.1rem; color: #bbb; flex-shrink: 0; }
+  .flight-cnt {
+    font-family: 'Caveat', cursive; font-size: 1.05rem;
+    color: var(--p1-dark); font-weight: 700; margin-top: 7px;
+    min-height: 1.2em;
+  }
+  .p2 .flight-cnt { color: var(--p2-dark); }
+
+  /* ---- GIF ---- */
+  .gif-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .gif-preview {
+    width: 90px; height: 68px; border-radius: 12px; object-fit: cover;
+    border: 3px solid white; box-shadow: 0 3px 12px rgba(0,0,0,0.12);
+    display: none;
+  }
+  .gif-btn {
+    font-size: 0.8rem; background: white; border: none; border-radius: 22px;
+    padding: 6px 14px; cursor: pointer; font-family: 'Nunito', sans-serif;
+    font-weight: 700; color: #999; transition: all 0.15s;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  .p1 .gif-btn:hover { background: #ffe0ef; color: var(--p1-dark); }
+  .p2 .gif-btn:hover { background: #d4eeff; color: var(--p2-dark); }
+
+  /* ---- SHARED SECTION ---- */
+  .shared-wrap {
+    max-width: 920px; margin: 28px auto 0;
+    animation: fadeUp 0.6s 0.35s ease both;
+  }
+  .shared-card {
+    background: white; border-radius: var(--radius); padding: 24px 26px;
+    box-shadow: 0 8px 32px rgba(180,140,200,0.12); position: relative;
+  }
+  .shared-card::before { content: '📌'; position: absolute; top: -16px; left: 22px; font-size: 1.8rem; }
+  .shared-title {
+    font-family: 'Caveat', cursive; font-size: 1.8rem; color: var(--p1-dark);
+    margin-bottom: 16px;
+  }
+  .meetup-row { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .meetup-inp {
+    font-family: 'Caveat', cursive; font-size: 1.2rem;
+    border: 2px dashed #e0d0e0; border-radius: 12px;
+    padding: 7px 16px; outline: none; color: #555;
+    background: #fafafa; transition: border-color 0.2s;
+  }
+  .meetup-inp:focus { border-color: var(--p1-dark); }
+  .big-cnt {
+    font-family: 'Caveat', cursive; font-size: 1.8rem;
+    color: var(--p2-dark); font-weight: 700; min-height: 1.2em;
+  }
+
+  .cats-banner {
+    display: flex; justify-content: center; gap: 6px;
+    font-size: 1.3rem; margin-top: 14px;
+    animation: floaty 2s ease-in-out infinite;
+  }
+
+  /* ---- GIF MODAL ---- */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45); z-index: 500;
+    align-items: center; justify-content: center; backdrop-filter: blur(4px);
+  }
+  .modal-overlay.open { display: flex; }
+  .modal-box {
+    background: white; border-radius: 22px; padding: 24px;
+    max-width: 380px; width: 92%;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.2);
+    animation: popIn 0.25s ease both;
+  }
+  @keyframes popIn { from{opacity:0;transform:scale(0.9);} to{opacity:1;transform:scale(1);} }
+  .modal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .modal-head h3 { font-family: 'Caveat', cursive; font-size: 1.6rem; color: var(--p1-dark); }
+  .close-btn { background: none; border: none; font-size: 1.3rem; cursor: pointer; color: #bbb; }
+  .close-btn:hover { color: #888; }
+  .gif-tabs { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .gif-tab {
+    font-size: 0.75rem; font-weight: 700; font-family: 'Nunito', sans-serif;
+    padding: 4px 12px; border-radius: 16px; border: 2px solid #eee;
+    cursor: pointer; transition: all 0.15s; background: white; color: #aaa;
+  }
+  .gif-tab.active { background: var(--p1); border-color: var(--p1-mid); color: var(--p1-dark); }
+  .gif-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px;
+  }
+  .gif-item {
+    border-radius: 10px; overflow: hidden; cursor: pointer;
+    border: 3px solid transparent; transition: border-color 0.15s, transform 0.15s;
+  }
+  .gif-item:hover { border-color: var(--p1-dark); transform: scale(1.05); }
+  .gif-item img { width: 100%; height: 72px; object-fit: cover; display: block; }
+  .url-row { display: flex; gap: 8px; }
+  .url-inp {
+    flex: 1; padding: 8px 12px; border: 2px solid #eee; border-radius: 10px;
+    font-family: 'Nunito', sans-serif; font-size: 0.85rem; outline: none;
+  }
+  .url-inp:focus { border-color: var(--p1-dark); }
+  .apply-btn {
+    background: var(--p1-dark); color: white; border: none;
+    border-radius: 10px; padding: 8px 16px;
+    font-family: 'Nunito', sans-serif; font-weight: 700; font-size: 0.85rem;
+    cursor: pointer; transition: background 0.15s;
+  }
+  .apply-btn:hover { background: #a84878; }
+
+  /* ---- FLOATERS ---- */
+  .floaters { position: fixed; pointer-events: none; inset: 0; z-index: 1; overflow: hidden; }
+  .floater {
+    position: absolute; font-size: 1.2rem; opacity: 0.15;
+    animation: drift linear infinite;
+  }
+  @keyframes drift {
+    from { transform: translateY(105vh) rotate(0deg); opacity:0; }
+    20% { opacity: 0.15; }
+    80% { opacity: 0.15; }
+    to { transform: translateY(-80px) rotate(360deg); opacity:0; }
+  }
+</style>
+</head>
+<body>
+
+<div class="floaters" id="floaters"></div>
+
+<div class="header">
+  <h1>💌 BFF Board</h1>
+  <p class="subtitle">your cozy little shared space — just the two of you ✨</p>
+  <div class="sync-status" id="syncStatus">
+    <div class="sync-dot"></div>
+    <span id="syncText">connecting...</span>
+  </div>
+</div>
+
+<div class="who-bar" id="whoBar">
+  <button class="who-btn p1" id="whoBtn1" onclick="selectWho(1)">I'm Bestie 1 🌸</button>
+  <button class="who-btn p2" id="whoBtn2" onclick="selectWho(2)">I'm Bestie 2 🌊</button>
+</div>
+
+<div class="board" id="board">
+
+  <!-- CARD 1 -->
+  <div class="note-card p1" id="card1">
+    <div class="card-header">
+      <div class="avatar-wrap epicker-wrap">
+        <div class="card-avatar" id="avatar1" onclick="openAvatarPicker(1)">🌸</div>
+        <div class="epicker" id="apicker1"></div>
+      </div>
+      <div class="card-name-wrap">
+        <input class="card-name" id="name1" value="Bestie 1" maxlength="20">
+      </div>
+      <div class="online-pip" id="pip1" title="Online status"></div>
+    </div>
+
+    <div class="slabel">✨ current mood</div>
+    <div class="mood-row">
+      <div class="epicker-wrap">
+        <span class="mood-big" id="mood1" onclick="openMoodPicker(1)">😊</span>
+        <div class="epicker" id="mpicker1"></div>
+      </div>
+      <input class="mood-text" id="moodtext1" placeholder="feeling..." maxlength="40">
+    </div>
+
+    <div class="slabel">📝 note</div>
+    <textarea class="note-text" id="note1" placeholder="write something sweet..." maxlength="300"></textarea>
+
+    <div class="slabel">🎵 listening to</div>
+    <div class="music-row">
+      <span class="music-icon">🎵</span>
+      <input class="music-inp" id="music1" placeholder="song · artist" maxlength="80">
+    </div>
+
+    <div class="slabel">✈️ my next flight</div>
+    <div class="flight-box">
+      <div class="flight-row">
+        <input class="flight-inp" id="fdep1" placeholder="from" maxlength="10">
+        <span class="arrow">→</span>
+        <input class="flight-inp" id="farr1" placeholder="to" maxlength="10">
+        <input class="flight-inp" id="fdate1" type="date">
+      </div>
+      <div class="flight-cnt" id="fcnt1"></div>
+    </div>
+
+    <div class="slabel">🐾 vibe gif</div>
+    <div class="gif-row">
+      <img class="gif-preview" id="gifimg1" alt="vibe gif">
+      <button class="gif-btn" id="gifbtn1" onclick="openGifModal(1)">🐱 pick a gif</button>
+    </div>
+  </div>
+
+  <!-- CARD 2 -->
+  <div class="note-card p2" id="card2">
+    <div class="card-header">
+      <div class="avatar-wrap epicker-wrap">
+        <div class="card-avatar" id="avatar2" onclick="openAvatarPicker(2)">🌊</div>
+        <div class="epicker" id="apicker2"></div>
+      </div>
+      <div class="card-name-wrap">
+        <input class="card-name" id="name2" value="Bestie 2" maxlength="20">
+      </div>
+      <div class="online-pip" id="pip2" title="Online status"></div>
+    </div>
+
+    <div class="slabel">✨ current mood</div>
+    <div class="mood-row">
+      <div class="epicker-wrap">
+        <span class="mood-big" id="mood2" onclick="openMoodPicker(2)">🌙</span>
+        <div class="epicker" id="mpicker2"></div>
+      </div>
+      <input class="mood-text" id="moodtext2" placeholder="feeling..." maxlength="40">
+    </div>
+
+    <div class="slabel">📝 note</div>
+    <textarea class="note-text" id="note2" placeholder="write something sweet..." maxlength="300"></textarea>
+
+    <div class="slabel">🎵 listening to</div>
+    <div class="music-row">
+      <span class="music-icon">🎵</span>
+      <input class="music-inp" id="music2" placeholder="song · artist" maxlength="80">
+    </div>
+
+    <div class="slabel">✈️ my next flight</div>
+    <div class="flight-box">
+      <div class="flight-row">
+        <input class="flight-inp" id="fdep2" placeholder="from" maxlength="10">
+        <span class="arrow">→</span>
+        <input class="flight-inp" id="farr2" placeholder="to" maxlength="10">
+        <input class="flight-inp" id="fdate2" type="date">
+      </div>
+      <div class="flight-cnt" id="fcnt2"></div>
+    </div>
+
+    <div class="slabel">🐾 vibe gif</div>
+    <div class="gif-row">
+      <img class="gif-preview" id="gifimg2" alt="vibe gif">
+      <button class="gif-btn" id="gifbtn2" onclick="openGifModal(2)">🐶 pick a gif</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- SHARED SECTION -->
+<div class="shared-wrap">
+  <div class="shared-card">
+    <div class="shared-title">🗓️ when we meet next</div>
+    <div class="meetup-row">
+      <span>📍</span>
+      <input class="meetup-inp" id="meetupPlace" placeholder="where are we meeting?">
+      <input class="meetup-inp" type="date" id="meetupDate" style="font-family:'Nunito',sans-serif;font-size:0.9rem;">
+      <div class="big-cnt" id="meetupCnt"></div>
+    </div>
+    <div class="cats-banner">🐱 🐾 ✨ 🐾 🐶</div>
+  </div>
+</div>
+
+<!-- GIF MODAL -->
+<div class="modal-overlay" id="gifModal">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h3>🐾 pick your vibe</h3>
+      <button class="close-btn" onclick="closeGifModal()">✕</button>
+    </div>
+    <div class="gif-tabs">
+      <button class="gif-tab active" onclick="setGifTab('cats',this)">🐱 cats</button>
+      <button class="gif-tab" onclick="setGifTab('dogs',this)">🐶 dogs</button>
+      <button class="gif-tab" onclick="setGifTab('cozy',this)">☕ cozy</button>
+      <button class="gif-tab" onclick="setGifTab('cute',this)">🌸 cute</button>
+    </div>
+    <div class="gif-grid" id="gifGrid"></div>
+    <p style="font-size:0.75rem;color:#bbb;margin-bottom:8px">or paste any gif/image URL:</p>
+    <div class="url-row">
+      <input class="url-inp" id="gifUrlInp" placeholder="https://...gif">
+      <button class="apply-btn" onclick="applyGifUrl()">set ✓</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// =====================================================
+//  DATA
+// =====================================================
+const MOODS = ['😊','😂','🥰','😭','😴','🤩','😤','🥺','😌','🤗','🥳','😎','🫠','🤔','😇','🥲','😏','🫶','💀','🌸','🙃','😬','🥹','🫡','🤯','🦋','💫','🌈','🔥','💀'];
+const AVEMOJI = ['🌸','🌊','🦋','🌙','⭐','🌈','🍓','🍀','🔮','🦊','🐱','🐶','🐻','🐼','🐨','🦁','🐸','🦄','🍭','☀️','🌺','🪷','🌻','🍄','🫧','💎','🍒','🫐','🌴','🐝'];
+
+const GIF_SETS = {
+  cats: [
+    'https://media.giphy.com/media/JIX9t2j0ZTN9S/giphy.gif',
+    'https://media.giphy.com/media/ICOgUNjpvO0PC/giphy.gif',
+    'https://media.giphy.com/media/3oEjI6SIIHBdRxXI40/giphy.gif',
+    'https://media.giphy.com/media/VbnUQpnihPSIgIXuZv/giphy.gif',
+    'https://media.giphy.com/media/l4FGGafcOHmrlQxG0/giphy.gif',
+    'https://media.giphy.com/media/BzyTuYCmvSORqs1ABM/giphy.gif',
+  ],
+  dogs: [
+    'https://media.giphy.com/media/4Zo41lhzKt6iZ8xff9/giphy.gif',
+    'https://media.giphy.com/media/MDJ9IbxxvDUQM/giphy.gif',
+    'https://media.giphy.com/media/4ZrFRwHGl4HTELW801/giphy.gif',
+    'https://media.giphy.com/media/26FxykLpuDxQiFbnO/giphy.gif',
+    'https://media.giphy.com/media/mCRJDo24UvJMA/giphy.gif',
+    'https://media.giphy.com/media/oCjCOdBKukBEQ/giphy.gif',
+  ],
+  cozy: [
+    'https://media.giphy.com/media/YnBntKOgnUSBkV7bQH/giphy.gif',
+    'https://media.giphy.com/media/xT9IgG50Lg7rusUgyU/giphy.gif',
+    'https://media.giphy.com/media/l3vRhaxVcPMSDdeveloped/giphy.gif',
+    'https://media.giphy.com/media/26BRv0ThflsHCqDrG/giphy.gif',
+    'https://media.giphy.com/media/3o7WIRMNnbFpyZaWdy/giphy.gif',
+    'https://media.giphy.com/media/l2JhtKtDWYNKdRpoA/giphy.gif',
+  ],
+  cute: [
+    'https://media.giphy.com/media/CjmvTCZf2U3p09Cn0h/giphy.gif',
+    'https://media.giphy.com/media/LpFkGgz1CcXVBXvgAi/giphy.gif',
+    'https://media.giphy.com/media/hvRJCLFzcasrR4ia7z/giphy.gif',
+    'https://media.giphy.com/media/H4DjXQXamtTiIuCcRU/giphy.gif',
+    'https://media.giphy.com/media/3ohhwLh5dw0i7iLzOg/giphy.gif',
+    'https://media.giphy.com/media/26ufnwz3wDUli7GU0/giphy.gif',
+  ],
+};
+
+// =====================================================
+//  STATE
+// =====================================================
+let myWho = null; // 1 or 2
+let activeGifCard = 1;
+let currentGifTab = 'cats';
+let isSaving = false;
+let lastSyncedData = null;
+let isUpdatingFromRemote = false;
+
+// =====================================================
+//  WHO AM I SELECTION
+// =====================================================
+function selectWho(n) {
+  myWho = n;
+  document.getElementById('whoBtn1').classList.toggle('active', n === 1);
+  document.getElementById('whoBtn2').classList.toggle('active', n === 2);
+  applyEditLocks();
+  updateSyncStatus('live', 'live sync on 🟢');
+}
+
+function applyEditLocks() {
+  [1, 2].forEach(n => {
+    const mine = myWho === n;
+    const dis = !mine;
+    document.getElementById('name' + n).disabled = dis;
+    document.getElementById('mood' + n).classList.toggle('locked', dis);
+    document.getElementById('moodtext' + n).disabled = dis;
+    document.getElementById('note' + n).disabled = dis;
+    document.getElementById('music' + n).disabled = dis;
+    document.getElementById('fdep' + n).disabled = dis;
+    document.getElementById('farr' + n).disabled = dis;
+    document.getElementById('fdate' + n).disabled = dis;
+    document.getElementById('avatar' + n).classList.toggle('locked', dis);
+    // gif button
+    document.getElementById('gifbtn' + n).style.display = mine ? '' : 'none';
+    // card mine outline
+    document.getElementById('card' + n).classList.toggle('mine', mine);
+  });
+  // meetup — both can edit
+}
+
+// =====================================================
+//  STORAGE HELPERS
+// =====================================================
+async function loadAll() {
+  try {
+    const result = await window.storage.get('bffboard_v2', true);
+    return result ? JSON.parse(result.value) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+async function saveAll(data) {
+  try {
+    await window.storage.set('bffboard_v2', JSON.stringify(data), true);
+  } catch (e) {
+    console.warn('save failed', e);
+  }
+}
+
+// =====================================================
+//  READ CURRENT FIELDS INTO OBJECT
+// =====================================================
+function readFields() {
+  const g = id => document.getElementById(id);
+  return {
+    name1: g('name1').value,
+    name2: g('name2').value,
+    avatar1: g('avatar1').textContent,
+    avatar2: g('avatar2').textContent,
+    mood1: g('mood1').textContent,
+    moodtext1: g('moodtext1').value,
+    mood2: g('mood2').textContent,
+    moodtext2: g('moodtext2').value,
+    note1: g('note1').value,
+    note2: g('note2').value,
+    music1: g('music1').value,
+    music2: g('music2').value,
+    fdep1: g('fdep1').value, farr1: g('farr1').value, fdate1: g('fdate1').value,
+    fdep2: g('fdep2').value, farr2: g('farr2').value, fdate2: g('fdate2').value,
+    gif1: g('gifimg1').dataset.src || '',
+    gif2: g('gifimg2').dataset.src || '',
+    meetupPlace: g('meetupPlace').value,
+    meetupDate: g('meetupDate').value,
+    ts1: null, ts2: null, // set per person
+  };
+}
+
+// =====================================================
+//  APPLY DATA TO DOM (from remote)
+// =====================================================
+function applyData(d, skipOwnCard) {
+  isUpdatingFromRemote = true;
+  const set = (id, val, isText = false) => {
+    const el = document.getElementById(id);
+    if (!el || val === undefined || val === null) return;
+    if (isText) el.textContent = val;
+    else el.value = val;
+  };
+
+  // Don't overwrite fields the current user is editing
+  function shouldSkip(n) { return skipOwnCard && myWho === n; }
+
+  if (!shouldSkip(1)) {
+    set('name1', d.name1);
+    set('avatar1', d.avatar1, true);
+    set('mood1', d.mood1, true);
+    set('moodtext1', d.moodtext1);
+    set('note1', d.note1);
+    set('music1', d.music1);
+    set('fdep1', d.fdep1); set('farr1', d.farr1); set('fdate1', d.fdate1);
+    if (d.gif1) showGif(1, d.gif1, false);
+  }
+  if (!shouldSkip(2)) {
+    set('name2', d.name2);
+    set('avatar2', d.avatar2, true);
+    set('mood2', d.mood2, true);
+    set('moodtext2', d.moodtext2);
+    set('note2', d.note2);
+    set('music2', d.music2);
+    set('fdep2', d.fdep2); set('farr2', d.farr2); set('fdate2', d.fdate2);
+    if (d.gif2) showGif(2, d.gif2, false);
+  }
+
+  // Meetup — take newest
+  set('meetupPlace', d.meetupPlace);
+  set('meetupDate', d.meetupDate);
+
+  updateFlightCnt(1); updateFlightCnt(2); updateMeetupCnt();
+  isUpdatingFromRemote = false;
+}
+
+// =====================================================
+//  SAVE (my card's data merged with remote)
+// =====================================================
+async function saveMyCard() {
+  if (!myWho || isSaving) return;
+  isSaving = true;
+  updateSyncStatus('saving', 'saving...');
+
+  try {
+    // Load latest remote, merge my card's data in
+    const remote = await loadAll();
+    const local = readFields();
+    const n = myWho;
+
+    remote['name' + n] = local['name' + n];
+    remote['avatar' + n] = local['avatar' + n];
+    remote['mood' + n] = local['mood' + n];
+    remote['moodtext' + n] = local['moodtext' + n];
+    remote['note' + n] = local['note' + n];
+    remote['music' + n] = local['music' + n];
+    remote['fdep' + n] = local['fdep' + n];
+    remote['farr' + n] = local['farr' + n];
+    remote['fdate' + n] = local['fdate' + n];
+    remote['gif' + n] = local['gif' + n];
+    // meetup — shared, last write wins
+    remote['meetupPlace'] = local['meetupPlace'];
+    remote['meetupDate'] = local['meetupDate'];
+    remote['ts' + n] = Date.now();
+
+    await saveAll(remote);
+    lastSyncedData = JSON.stringify(remote);
+    updateSyncStatus('live', 'saved ✓');
+    setTimeout(() => { if (myWho) updateSyncStatus('live', 'live sync on 🟢'); }, 1500);
+  } catch (e) {
+    updateSyncStatus('live', 'save failed ⚠️');
+  }
+  isSaving = false;
+}
+
+// =====================================================
+//  POLL FOR REMOTE CHANGES
+// =====================================================
+async function poll() {
+  try {
+    const d = await loadAll();
+    const str = JSON.stringify(d);
+    if (str !== lastSyncedData) {
+      lastSyncedData = str;
+      applyData(d, true); // skip own card to not disrupt typing
+
+      // Online pips — if ts within 5 min, show online
+      const now = Date.now();
+      [1, 2].forEach(n => {
+        const ts = d['ts' + n];
+        const pip = document.getElementById('pip' + n);
+        if (ts && now - ts < 5 * 60 * 1000) pip.classList.add('online');
+        else pip.classList.remove('online');
+      });
+    }
+  } catch (e) {}
+}
+
+function updateSyncStatus(cls, text) {
+  const el = document.getElementById('syncStatus');
+  el.className = 'sync-status ' + cls;
+  document.getElementById('syncText').textContent = text;
+}
+
+// =====================================================
+//  COUNTDOWNS
+// =====================================================
+function updateFlightCnt(n) {
+  const dateVal = document.getElementById('fdate' + n).value;
+  const dep = document.getElementById('fdep' + n).value || '?';
+  const arr = document.getElementById('farr' + n).value || '?';
+  const el = document.getElementById('fcnt' + n);
+  if (!dateVal) { el.textContent = ''; return; }
+  const diff = Math.ceil((new Date(dateVal) - new Date()) / 86400000);
+  if (diff < 0) el.textContent = `${dep} → ${arr} · already flew! ✈️`;
+  else if (diff === 0) el.textContent = `${dep} → ${arr} · TODAY!!! 🛫🎉`;
+  else el.textContent = `${dep} → ${arr} · ${diff} day${diff !== 1 ? 's' : ''} to go ✈️`;
+}
+
+function updateMeetupCnt() {
+  const dateVal = document.getElementById('meetupDate').value;
+  const place = document.getElementById('meetupPlace').value || 'somewhere';
+  const el = document.getElementById('meetupCnt');
+  if (!dateVal) { el.textContent = ''; return; }
+  const diff = Math.ceil((new Date(dateVal) - new Date()) / 86400000);
+  if (diff < 0) el.textContent = `${place} was ${Math.abs(diff)}d ago 💖`;
+  else if (diff === 0) el.textContent = `IT'S TODAY!!! 🎉🎉🎉`;
+  else el.textContent = `${place} in ${diff} day${diff !== 1 ? 's' : ''} 💕`;
+}
+
+// =====================================================
+//  EMOJI PICKERS
+// =====================================================
+function buildPickers() {
+  [1, 2].forEach(n => {
+    // avatar
+    const ap = document.getElementById('apicker' + n);
+    AVEMOJI.forEach(e => {
+      const s = document.createElement('span');
+      s.className = 'eopt'; s.textContent = e;
+      s.onclick = () => {
+        if (myWho !== n) return;
+        document.getElementById('avatar' + n).textContent = e;
+        ap.classList.remove('open');
+        debounceSave();
+      };
+      ap.appendChild(s);
+    });
+    // mood
+    const mp = document.getElementById('mpicker' + n);
+    MOODS.forEach(e => {
+      const s = document.createElement('span');
+      s.className = 'eopt'; s.textContent = e;
+      s.onclick = () => {
+        if (myWho !== n) return;
+        document.getElementById('mood' + n).textContent = e;
+        mp.classList.remove('open');
+        debounceSave();
+      };
+      mp.appendChild(s);
+    });
+  });
+}
+
+function openAvatarPicker(n) {
+  if (myWho !== n) return;
+  closeAllPickers();
+  document.getElementById('apicker' + n).classList.add('open');
+}
+function openMoodPicker(n) {
+  if (myWho !== n) return;
+  closeAllPickers();
+  document.getElementById('mpicker' + n).classList.add('open');
+}
+function closeAllPickers() {
+  document.querySelectorAll('.epicker').forEach(p => p.classList.remove('open'));
+}
+document.addEventListener('click', e => {
+  if (!e.target.closest('.epicker-wrap')) closeAllPickers();
+});
+
+// =====================================================
+//  GIF MODAL
+// =====================================================
+function openGifModal(n) {
+  if (myWho !== n) return;
+  activeGifCard = n;
+  document.getElementById('gifUrlInp').value = '';
+  renderGifGrid(currentGifTab);
+  document.getElementById('gifModal').classList.add('open');
+}
+function closeGifModal() { document.getElementById('gifModal').classList.remove('open'); }
+
+function setGifTab(tab, btn) {
+  currentGifTab = tab;
+  document.querySelectorAll('.gif-tab').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderGifGrid(tab);
+}
+
+function renderGifGrid(tab) {
+  const grid = document.getElementById('gifGrid');
+  grid.innerHTML = '';
+  (GIF_SETS[tab] || []).forEach(url => {
+    const div = document.createElement('div');
+    div.className = 'gif-item';
+    div.innerHTML = `<img src="${url}" loading="lazy" alt="gif">`;
+    div.onclick = () => { showGif(activeGifCard, url, true); closeGifModal(); };
+    grid.appendChild(div);
+  });
+}
+
+function applyGifUrl() {
+  const url = document.getElementById('gifUrlInp').value.trim();
+  if (url) { showGif(activeGifCard, url, true); closeGifModal(); }
+}
+
+function showGif(n, url, andSave = false) {
+  const img = document.getElementById('gifimg' + n);
+  img.src = url;
+  img.dataset.src = url;
+  img.style.display = 'block';
+  if (andSave) debounceSave();
+}
+
+document.getElementById('gifModal').addEventListener('click', e => {
+  if (e.target === document.getElementById('gifModal')) closeGifModal();
+});
+
+// =====================================================
+//  DEBOUNCED SAVE
+// =====================================================
+let saveTimer;
+function debounceSave() {
+  if (isUpdatingFromRemote) return;
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(saveMyCard, 800);
+}
+
+// =====================================================
+//  ATTACH LISTENERS
+// =====================================================
+function attachListeners() {
+  const ids = [
+    'name1','name2',
+    'moodtext1','moodtext2',
+    'note1','note2',
+    'music1','music2',
+    'fdep1','farr1','fdate1',
+    'fdep2','farr2','fdate2',
+    'meetupPlace','meetupDate'
+  ];
+  ids.forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener('input', () => {
+      updateFlightCnt(1); updateFlightCnt(2); updateMeetupCnt();
+      debounceSave();
+    });
+    el.addEventListener('change', () => {
+      updateFlightCnt(1); updateFlightCnt(2); updateMeetupCnt();
+      debounceSave();
+    });
+  });
+}
+
+// =====================================================
+//  FLOATERS
+// =====================================================
+function spawnFloaters() {
+  const pets = ['🐱','🐶','🐾','✨','💕','🌸','⭐','🦋','🌈','🍓','💫','🫧'];
+  const wrap = document.getElementById('floaters');
+  setInterval(() => {
+    const s = document.createElement('span');
+    s.className = 'floater';
+    s.textContent = pets[Math.floor(Math.random() * pets.length)];
+    s.style.left = Math.random() * 100 + 'vw';
+    s.style.animationDuration = (9 + Math.random() * 12) + 's';
+    wrap.appendChild(s);
+    setTimeout(() => s.remove(), 22000);
+  }, 2500);
+}
+
+// =====================================================
+//  INIT
+// =====================================================
+async function init() {
+  buildPickers();
+  attachListeners();
+  spawnFloaters();
+
+  // Load initial data
+  try {
+    const d = await loadAll();
+    if (d && Object.keys(d).length > 0) {
+      applyData(d, false);
+      lastSyncedData = JSON.stringify(d);
+    }
+    updateSyncStatus('live', 'pick who you are 👆');
+  } catch (e) {
+    updateSyncStatus('live', 'pick who you are 👆');
+  }
+
+  updateFlightCnt(1); updateFlightCnt(2); updateMeetupCnt();
+
+  // Poll every 4 seconds
+  setInterval(poll, 4000);
+  // Update countdowns every minute
+  setInterval(() => { updateFlightCnt(1); updateFlightCnt(2); updateMeetupCnt(); }, 60000);
+}
+
+init();
+</script>
+</body>
+</html>
